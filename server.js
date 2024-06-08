@@ -8,7 +8,10 @@ require("dotenv").config();
 
 const app = express();
 app.use(bodyparser.json());
+
+// Students
 app.use("/api", StudentRouter);
+// Mentors
 app.use("/api", MentorRouter);
 
 mongoose.connect(process.env.MONGODB).then(() => {
