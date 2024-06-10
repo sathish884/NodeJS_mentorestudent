@@ -1,16 +1,8 @@
-const mongoose = require("mongoose");
+const mongoose = require('mongoose');
 
-const mentorShema = new mongoose.Schema({
-    name: {
-        type: String,
-        required: true
-    },
-    age: {
-        type: Number,
-        required: true
-    }
+const mentorSchema = new mongoose.Schema({
+    mentorId: { type: Number, unique: true, required: true }, // Sequential ID
+    name: { type: String, required: true }
 });
 
-const Mentor = mongoose.model("mentor", mentorShema);
-
-module.exports = Mentor;
+module.exports = mongoose.model('Mentor', mentorSchema);
