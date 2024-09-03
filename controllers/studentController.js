@@ -13,7 +13,6 @@ async function getNextSequence(name) {
 
 // Create Student
 exports.createStudents = async (req, res, next) => {
-    //const { name, age} = req.body;
     try {
         const studentIds = await getNextSequence('studentId');
         const student = new Students({
@@ -23,8 +22,7 @@ exports.createStudents = async (req, res, next) => {
         await student.save();
         res.status(200).json({ message: "Successfully created", data: student });
     } catch (error) {
-        console.error("Error creating student:", error);
-        res.status(500).json({ errorMsg: "Internal Server Error" });
+        res.status(500).json({ errorMsg: error.message });
     }
 };
 
@@ -51,56 +49,44 @@ exports.assignedMentor = async (req, res) => {
 
         res.status(200).json({ message: "Student assigned successfully" });
     } catch (error) {
-        console.error("Error assigning mentor:", error);
         res.status(500).json({ message: "Internal server error", error: error.message });
     }
 };
 
-// Assign multiple students to a mentor
-exports.assignStudentsToMentor = async (req, res) => {
+exports.assignMultipleStudents = async (req, res) => {
     const { mentorId, studentIds } = req.body;
 
     try {
         // Check if the mentor exists
-        const mentor = await Mentor.findOne({ mentorId });
+        const mentor = await Mentor.findOne({ mentorId: Number(mentorId) });
         if (!mentor) {
             return res.status(404).json({ message: "Mentor not found" });
         }
 
-        console.log(`Assigning mentorId: ${mentorId} to students: ${studentIds}`);
-
-        // Update the students
-        const students = await Students.updateMany(
-            { studentId: { $in: studentIds } },
-            [
-                {
-                    $set: {
-                        assignedMentor: mentorId,
-                        previousMentors: {
-                            $cond: {
-                                if: { $ne: ["$assignedMentor", null] },
-                                then: { $concatArrays: ["$previousMentors", ["$assignedMentor"]] },
-                                else: "$previousMentors"
-                            }
-                        }
+        // Update the students with the new mentor
+        const result = await Students.updateMany(
+            { studentId: { $in: studentIds.map(Number) } },
+            {
+                $set: { assignedMentor: Number(mentorId) },
+                $push: {
+                    previousMentors: {
+                        $each: [Number(mentorId)],
+                        $position: 0
                     }
                 }
-            ]
+            }
         );
 
-        // Check the number of modified documents
-        console.log(`Modified count: ${students.modifiedCount}`);
-
-        if (students.modifiedCount === 0) {
+        if (result.modifiedCount === 0) {
             return res.status(400).json({ message: "No students were assigned. They might already have a mentor." });
         }
-
         res.status(200).json({ message: "Students assigned successfully" });
     } catch (error) {
-        console.error("Error assigning students:", error);
         res.status(500).json({ message: "Internal server error", error: error.message });
     }
 };
+
+
 
 // not assigned mentors student list
 exports.getUnassignedStudents = async (req, res) => {
@@ -125,53 +111,40 @@ exports.getStudentsForMentor = async (req, res) => {
     }
 
     try {
-        console.log(`Fetching mentor with mentorId: ${mentorId}`);
         const mentor = await Mentor.findOne({ mentorId: mentorId });
         if (!mentor) {
             return res.status(404).json({ message: "Mentor not found" });
         }
 
-        console.log(`Mentor found: ${mentor}`);
-        console.log(`Fetching students assigned to mentorId: ${mentorId}`);
         const students = await Students.find({ assignedMentor: Number(mentorId) });
 
-        console.log(`Students found: ${students}`);
         res.status(200).json(students);
     } catch (error) {
-        console.error("Error fetching students for mentor:", error);
         res.status(500).json({ message: "Internal server error", error: error.message });
     }
 };
 
-// Get previously assigned mentors for a particular student
 exports.getPreviousMentorsForStudent = async (req, res) => {
-    const studentId = req.query.studentId; // Correctly retrieve studentId from query parameters
-
-    console.log(`Received request to fetch previous mentors for studentId: ${studentId}`);
+    const studentId = Number(req.query.studentId);
 
     try {
-        console.log(`Fetching student with studentId: ${studentId}`);
-        const student = await Students.findOne({ studentId: Number(studentId) }); // Ensure studentId is treated as a number
+        const student = await Students.findOne({ studentId });
 
         if (!student) {
-            console.log(`Student with studentId ${studentId} not found`);
             return res.status(404).json({ message: "Student not found" });
         }
 
-        console.log(`Student found: ${student}`);
-        console.log(`Previous mentors IDs: ${student.previousMentors}`);
-
         if (student.previousMentors.length === 0) {
-            console.log(`No previous mentors found for studentId ${studentId}`);
-            return res.status(200).json([]); // Return empty array if no previous mentors
+            return res.status(200).json([]);
         }
 
-        const previousMentors = await Mentor.find({ mentorId: { $in: student.previousMentors } });
+        const previousMentors = await Mentor.find({
+            mentorId: { $in: student.previousMentors.map(Number) }  // Ensure correct type matching
+        });
 
-        console.log(`Previous mentors found: ${previousMentors}`);
         res.status(200).json(previousMentors);
     } catch (error) {
-        console.error("Error fetching previous mentors for student:", error);
         res.status(500).json({ message: "Internal server error", error: error.message });
     }
 };
+

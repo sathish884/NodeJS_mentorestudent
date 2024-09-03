@@ -6,3 +6,4 @@ const mentorSchema = new mongoose.Schema({
 });
 
 module.exports = mongoose.model('Mentor', mentorSchema);
+

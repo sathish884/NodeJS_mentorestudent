@@ -10,7 +10,7 @@ router.route("/createStudent").post(studentController.createStudents);
 router.route("/assigned").put(studentController.assignedMentor);
 
 // assigned multiple students to mentor
-router.route("/assign-students").put(studentController.assignStudentsToMentor);
+router.route("/assign-students").put(studentController.assignMultipleStudents);
 
 // get un-assigned student list
 router.route("/getUnassignedStudents").get(studentController.getUnassignedStudents);
