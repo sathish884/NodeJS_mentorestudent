@@ -18,6 +18,10 @@ app.use("/api", StudentRouter);
 // Mentors
 app.use("/api", MentorRouter);
 
+app.get("/", (req, res) => {
+    res.json({ message: "Mentor and Student Deployed Successfully" });
+})
+
 mongoose.connect(process.env.MONGODB).then(() => {
     console.log("MongoDB is connected");
 
